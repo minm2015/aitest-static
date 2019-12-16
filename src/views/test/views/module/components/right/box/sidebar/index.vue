@@ -28,11 +28,12 @@
 
 <script>
 export default {
+  name: "",
   data() {
     return {
       activeIndex: 999,
       visible: false,
-      menus: [] //{ name: "历史记录" }, { name: "版本" }
+      menus: [{ name: "历史记录" }, { name: "版本" }] //{ name: "历史记录" }, { name: "版本" }
     };
   },
   methods: {
@@ -85,7 +86,7 @@ export default {
   }
 }
 .module-drawer {
-  top: 125px;
+  top: 130px;
   right: 40px;
   .ant-drawer-mask {
     width: 0;

@@ -4,7 +4,7 @@
       <template v-if="treeActiveModel.type == 0">
         <!-- 根目录 -->
         <v-contextmenu-item
-          @click="rightMenuClick(item)"
+          @click="rightMenuClick(item.type)"
           v-for="item in rightItems.root"
           :key="item.type"
         >{{ item.name }}</v-contextmenu-item>
@@ -12,7 +12,7 @@
       <template v-else-if="treeActiveModel.type == 1">
         <!-- 组件右键菜单 -->
         <v-contextmenu-item
-          @click="rightMenuClick(item)"
+          @click="rightMenuClick(item.type)"
           v-for="item in rightItems.component"
           :key="item.type"
         >{{ item.name }}</v-contextmenu-item>
@@ -20,7 +20,7 @@
       <template v-else-if="treeActiveModel.type == 2">
         <!-- 文件夹右键菜单 -->
         <v-contextmenu-item
-          @click="rightMenuClick(item)"
+          @click="rightMenuClick(item.type)"
           v-for="item in rightItems.folder"
           :key="item.type"
         >{{ item.name }}</v-contextmenu-item>
@@ -28,7 +28,7 @@
       <template v-else>
         <!-- 节点右键菜单 -->
         <v-contextmenu-item
-          @click="rightMenuClick(item)"
+          @click="rightMenuClick(item.type)"
           v-for="item in rightItems.script"
           :key="item.type"
         >{{ item.name }}</v-contextmenu-item>
@@ -53,7 +53,7 @@
             <template slot="title">
               <span>新建组件</span>
             </template>
-            <a-icon type="file-add" />
+            <a-icon type="file-add" @click="rightMenuClick(8)" />
           </a-tooltip>
           <a-tooltip placement="bottom">
             <template slot="title">
@@ -78,30 +78,34 @@
           <module-tree
             style="width: 240px"
             :treeData="treeData"
-            :onLoadData="onLoadData"
             :rightClick="rightClick"
             :select="select"
+            :expand="onExpand"
+            :expandedKeys="expandedKeys"
           />
         </template>
       </bl-leftbox>
     </div>
     <div class="module-container-right">
-      <bl-rightbox v-if="items && items.length > 0">
-        <template slot="rightbox-header">
-          <right-headerbox
-            :items="items"
-            :activeKey="ideActiveModel.id + '&' + ideActiveModel.type"
-            :tabClick="tabClick"
-          />
-        </template>
-        <template slot="main-left">
-          <bl-ide class="bl-ide-style-default" :current="ideActiveModel" />
-        </template>
-        <template slot="main-right">
-          <RightSidebarbox />
-        </template>
-      </bl-rightbox>
-      <div style="background: #1e202d; height: 100%"></div>
+      <div
+        v-if="items.length == 0"
+        style="height:100%;display:flex;justify-content:center;align-items:center; background: #1e202d"
+      >
+        <div style="color:#e0e0e0; font-size: 12px;">
+          <p>保存 - Ctrl+S | Cmd+S</p>
+          <p>查询 - Ctrl+F | Cmd+F</p>
+          <p>替换 - Ctrl+H | Cmd+Alt+F</p>
+          <p>删除一行 - Ctrl+Shift+K | Cmd+Shift+K</p>
+          <p>备注：编辑器只能同时打开五个，超过数量将会自动关闭第一个</p>
+        </div>
+      </div>
+      <RightBox
+        v-else
+        :items="items"
+        :activeKey="activeId"
+        @tabClick="tabClick"
+        @closeClick="closeClick"
+      ></RightBox>
     </div>
   </div>
 </template>
@@ -111,16 +115,18 @@ import {
   ModuleTree,
   CreateComponent,
   CreateScript,
-  RightHeaderbox,
-  RightSidebarbox
+  RightBox
 } from "./components";
 export default {
+  created() {
+    this.initialTreeData();
+  },
   components: {
     ModuleTree,
     CreateComponent,
     CreateScript,
-    RightHeaderbox,
-    RightSidebarbox
+    // eslint-disable-next-line vue/no-unused-components
+    RightBox
   },
   data() {
     return {
@@ -129,22 +135,9 @@ export default {
         type: 0,
         activeId: undefined
       },
-      ideActiveModel: {
-        id: "",
-        type: 999,
-        language: "python",
-        code: "//123131"
-      },
       rightItems: this.COMMON_ENUM.ModuleRightItemEnum,
       moduleNodeType: this.COMMON_ENUM.ModuleNodeType,
-      treeData: [
-        {
-          title: "公共组件",
-          id: "root",
-          type: 0,
-          class: "tree-root"
-        }
-      ],
+      treeData: [],
       dialogModel: {
         type: 999,
         visible: false,
@@ -153,35 +146,37 @@ export default {
       drawerStyle: {
         padding: 50
       },
-      items: [] //编辑器顶部打开的元素列表
+      items: [], //编辑器顶部打开的元素列表, id/type/title/code
+      activeId: "",
+      expandedKeys: ["public-root"]
     };
   },
   methods: {
-    onLoadData(treeNode) {
-      return new Promise(resolve => {
-        if (treeNode.dataRef.children) {
-          resolve();
-          return;
-        }
-        setTimeout(() => {
-          treeNode.dataRef.children = [
+    initialTreeData() {
+      this.treeData = [
+        {
+          title: "公共组件",
+          id: "public-root",
+          type: 0,
+          class: "tree-root",
+          children: [
             {
               title: "HttpRunner",
               class: "tree-switcher",
-              id: 1,
+              id: "1",
               type: 1,
               slots: { icon: "httpRunner" },
               children: [
                 {
                   title: "StrategyGroupApi",
-                  id: 3,
+                  id: "3",
                   type: 3,
                   code: "import logging",
                   slots: { icon: "python" }
                 },
                 {
                   title: "Shell",
-                  id: 4,
+                  id: "4",
                   type: 4,
                   code: "cat www.baidu.com",
                   slots: { icon: "shell" }
@@ -189,38 +184,38 @@ export default {
                 {
                   title: "文件夹",
                   class: "tree-switcher",
-                  id: 5,
+                  id: "5",
                   type: 2,
                   slots: { icon: "folder" },
                   children: [
                     {
                       title: "StrategyGroupApi",
-                      id: 6,
+                      id: "6",
                       type: 3,
                       slots: { icon: "python" }
                     },
                     {
                       title: "Shell",
-                      id: 7,
+                      id: "7",
                       type: 4,
                       slots: { icon: "shell" }
                     },
                     {
                       title: "文件夹",
                       class: "tree-switcher",
-                      id: 8,
+                      id: "8",
                       type: 2,
                       slots: { icon: "folder" },
                       children: [
                         {
                           title: "StrategyGroupApi",
-                          id: 9,
+                          id: "9",
                           type: 3,
                           slots: { icon: "python" }
                         },
                         {
                           title: "Shell",
-                          id: 10,
+                          id: "10",
                           type: 4,
                           slots: { icon: "shell" }
                         }
@@ -233,16 +228,14 @@ export default {
             {
               title: "文件夹",
               class: "tree-switcher",
-              id: 2,
+              id: "2",
               type: 2,
               slots: { icon: "folder" },
               children: []
             }
-          ];
-          this.treeData = [...this.treeData];
-          resolve();
-        }, 500);
-      });
+          ]
+        }
+      ];
     },
     rightClick(e) {
       const postition = {
@@ -253,65 +246,74 @@ export default {
       this.treeActiveModel.id = e.node.dataRef.id;
       this.$refs.contextmenu.show(postition);
     },
-    rightMenuClick(e) {
-      this.dialogModel.type = e.type;
+    rightMenuClick(type) {
+      this.dialogModel.type = type;
       this.dialogModel.visible = true;
     },
     reset() {
       this.dialogModel.type = 999;
       this.dialogModel.visible = false;
     },
-    tabClick(e) {
-      const array = e.split("&");
-      const id = array[0];
-      const type = array[1];
-      this.ideActiveModel.id = id;
-      this.ideActiveModel.type = type;
-      if (type == this.moduleNodeType.Python.type) {
-        this.ideActiveModel.language = this.moduleNodeType.Python.language;
-      } else if (type == this.moduleNodeType.Shell.type) {
-        this.ideActiveModel.language = this.moduleNodeType.Shell.language;
-      } else if (type == this.moduleNodeType.ENV.type) {
-        this.ideActiveModel.language = this.moduleNodeType.ENV.language;
-      }
-    },
     select(selectedKeys, e) {
       const type = e.node.dataRef.type;
       const id = e.node.dataRef.id;
+      const title = e.node.dataRef.title;
       if (
         type == this.moduleNodeType.Python.type ||
         type == this.moduleNodeType.Shell.type ||
         type == this.moduleNodeType.ENV.type
       ) {
-        // 1、设置活动的组件
-        this.ideActiveModel.id = id;
-        this.ideActiveModel.type = type;
-        if (type == this.moduleNodeType.Python.type) {
-          this.ideActiveModel.language = this.moduleNodeType.Python.language;
-        } else if (type == this.moduleNodeType.Shell.type) {
-          this.ideActiveModel.language = this.moduleNodeType.Shell.language;
-        } else if (type == this.moduleNodeType.ENV.type) {
-          this.ideActiveModel.language = this.moduleNodeType.ENV.language;
-        }
-        let exist = false;
-        this.items.forEach(item => {
-          if (item.id == id) {
-            exist = true;
-            return;
-          }
+        let filterResult = this.items.filter(item => {
+          return item.id == id;
         });
-        if (!exist) {
-          console.log("not exist");
-          if (this.items.length == 5) {
-            this.items.shift();
-          }
-          this.items.push({
-            id: id,
-            type: type,
-            title: e.node.dataRef.title
-          });
+        if (filterResult.length > 0) {
+          // 说明节点在右边界面已经存在
+          this.activeId = id;
+          return;
         }
+        if (this.items.length == 5) {
+          //限制最多只能同时打开五个
+          this.items.shift();
+        }
+        this.activeId = id;
+        const item = {
+          id: id,
+          title: title,
+          type: type,
+          language:
+            type == this.moduleNodeType.Python.type
+              ? this.moduleNodeType.Python.language
+              : type == this.moduleNodeType.Shell.type
+              ? this.moduleNodeType.Shell.language
+              : type == this.moduleNodeType.ENV.type
+              ? this.moduleNodeType.ENV.language
+              : "python",
+          loading: true,
+          code: ""
+        };
+        this.items.push(item);
+        setTimeout(() => {
+          item.code = this.selectNodeCode(id);
+          item.loading = false;
+        }, 1500);
       }
+    },
+    selectNodeCode(id) {
+      return "hello word=" + id;
+    },
+    closeClick(item) {
+      this.Arrays.arrayRemoveItem(this.items, item);
+      if (item.id == this.activeId && this.items.length > 0) {
+        //this.items.length > 0 防止关闭最后一个的时候这里报错
+        this.activeId = this.items[this.items.length - 1].id;
+      }
+    },
+    tabClick(item) {
+      this.activeId = item.id;
+    },
+    onExpand(expandedKeys) {
+      console.log("onExpand", expandedKeys);
+      this.expandedKeys = expandedKeys;
     }
   }
 };

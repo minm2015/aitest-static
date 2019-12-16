@@ -4,9 +4,10 @@
       :treeData="treeData"
       showIcon
       @replaceFields="replaceFields"
-      :loadData="onLoadData"
       @rightClick="rightClick"
       @select="select"
+      :expandedKeys="expandedKeys"
+      @expand="expand"
     >
       <a-icon type="down" slot="switcherIcon" />
       <bl-icon type="bl-folder" slot="folder" />
@@ -32,10 +33,6 @@ export default {
       type: Array,
       required: true
     },
-    onLoadData: {
-      type: Function,
-      required: true
-    },
     replaceFields: {
       type: Object,
       default() {
@@ -53,16 +50,23 @@ export default {
       type: Function,
       // eslint-disable-next-line no-unused-vars
       default: (selectedKeys, e) => {}
+    },
+    expandedKeys: {
+      type: Array,
+      required: false
+    },
+    expand: {
+      type: Function,
+      required: false
     }
   },
-  mounted() {},
   watch: {},
   data() {
-    return {};
+    return {
+      selectedKeys: []
+    };
   },
-  methods: {
-    // eslint-disable-next-line no-unused-vars
-  }
+  methods: {}
 };
 </script>
 
@@ -89,11 +93,11 @@ export default {
     li {
       padding: 0;
       margin: 0;
+      padding-top: 1px;
       > span {
         height: 28px;
         line-height: 28px;
         font-size: 12px;
-        margin-bottom: 1px;
         padding: 0;
         > span {
           height: inherit;

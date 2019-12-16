@@ -1,5 +1,5 @@
 <template>
-  <div id="container"></div>
+  <div :id="current.id"></div>
 </template>
 
 <script>
@@ -10,6 +10,7 @@ export default {
       type: Object,
       default() {
         return {
+          id: "xxx",
           language: "python",
           code: "//code"
         };
@@ -29,7 +30,6 @@ export default {
       // eslint-disable-next-line no-unused-vars
       handler(newValue, oldValue) {
         console.log("ide reload ...");
-        console.log(newValue);
         this.reload();
       },
       deep: true
@@ -37,7 +37,7 @@ export default {
   },
   mounted() {
     this.ideElement = monaco.editor.create(
-      document.getElementById("container"),
+      document.getElementById(this.current.id),
       this.options
     );
     this.reload();
@@ -49,7 +49,6 @@ export default {
   },
   methods: {
     reload() {
-      console.log(this.ideElement);
       const model = monaco.editor.createModel(
         this.current.code,
         this.current.language

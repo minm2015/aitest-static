@@ -23,8 +23,7 @@ export default {};
   width: 100%;
   height: inherit;
   .rightbox-header {
-    height: 75px;
-    background-color: aqua;
+    height: 80px;
   }
   .rightbox-main {
     height: 100%;

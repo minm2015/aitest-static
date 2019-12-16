@@ -23,6 +23,7 @@
           <a-input
             autocomplete="off"
             size="small"
+            :maxlength="item.maxlength"
             :placeholder="item.placeholder"
             v-decorator="item.decorator"
           />
@@ -78,7 +79,8 @@ export default {
         {
           label: "组件名称",
           type: "Input",
-          placeholder: "名称由汉字或字母组成",
+          placeholder: "名称由汉字或字母组成, 不超过24个字符",
+          maxlength: 24,
           decorator: [
             "name",
             { rules: [{ required: true, message: "请输入组件名称" }] }
@@ -100,7 +102,7 @@ export default {
   methods: {
     initialValue() {
       let model = {
-        name: "",
+        name: null,
         type: 1
       };
       setTimeout(() => {
@@ -109,12 +111,18 @@ export default {
     },
     // eslint-disable-next-line no-unused-vars
     handleOk(e) {
-      this.loading = true;
-      setTimeout(() => {
-        this.isShow = false;
-        this.loading = false;
-        this.$emit("reset");
-      }, 2000);
+      this.form.validateFields((errors, values) => {
+        console.log(errors);
+        console.log(values);
+        if (errors == null) {
+          this.loading = true;
+          setTimeout(() => {
+            this.isShow = false;
+            this.loading = false;
+            this.$emit("reset");
+          }, 2000);
+        }
+      });
     },
     // eslint-disable-next-line no-unused-vars
     handleCancel(e) {
